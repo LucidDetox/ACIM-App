@@ -421,18 +421,6 @@ body.is-practice .tabbar{ display:none; }
 .streak{ margin:14px 0 4px; color:var(--ink-2); font-size:.92rem; }
 
 .support-copy{ margin:14px 0 16px; color:var(--ink-2); line-height:1.55; }
-.manage-line{ margin:14px 0 0; text-align:center; font-size:.86rem; color:var(--ink-2); }
-.amounts{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
-.amount{
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  min-height:76px; border-radius:18px; background:var(--surface-2); color:var(--ink);
-  transition:transform .15s ease, box-shadow .2s ease;
-}
-.amount:hover{ box-shadow:inset 0 0 0 1.5px var(--gold); }
-.amount:active{ transform:scale(.97); }
-.amount b{ font-family:var(--serif); font-weight:500; font-size:1.55rem; line-height:1.1; font-variant-numeric:lining-nums; }
-.amount span{ font-size:.8rem; color:var(--ink-2); }
-.sheet-sub{ font-size:.95rem; font-weight:600; margin:22px 0 10px; }
 .thanks-mark{ width:56px; height:56px; border-radius:16px; margin:2px auto 16px; box-shadow:0 8px 22px -10px rgba(22,32,58,.45); }
 #sheet-thanks h2, #sheet-thanks .lead{ text-align:center; }
 .fine-center{ text-align:center; font-size:.82rem; color:var(--ink-3); margin:14px 0 0; }
@@ -716,11 +704,7 @@ body.is-practice .tabbar{ display:none; }
       <h2 class="group-label">Support</h2>
       <div class="group" style="padding:6px 18px 18px;">
         <p class="support-copy">The Companion is free, and it always will be. It's made and looked after by one person. If it's helping your practice, any donation would be immensely appreciated.</p>
-        <div class="btn-row">
-          <button class="btn btn-quiet" id="give-once-btn">Donate once</button>
-          <button class="btn btn-primary" id="give-monthly-btn">Monthly support</button>
-        </div>
-        <p class="manage-line" id="manage-line" hidden>Already giving monthly? <button class="link-btn" data-manage>Manage or cancel</button></p>
+        <button class="btn btn-primary btn-block" id="donate-btn">Donate</button>
       </div>
 
       <h2 class="group-label">Your data</h2>
@@ -849,22 +833,6 @@ body.is-practice .tabbar{ display:none; }
   </div>
 </div>
 
-<!-- Support: choose an amount -->
-<div class="backdrop" id="sheet-support" role="dialog" aria-modal="true" aria-labelledby="support-title">
-  <div class="sheet">
-    <div class="sheet-grip"></div>
-    <h2 id="support-title">Support the Companion</h2>
-    <p class="lead">It's free for everyone and always will be. Give whatever feels right.</p>
-    <h3 class="sheet-sub">Every month</h3>
-    <div class="amounts" id="amounts"></div>
-    <h3 class="sheet-sub">Just once</h3>
-    <button class="btn btn-quiet btn-block" id="support-once">Give any amount once</button>
-    <p class="manage-line" id="manage-line-sheet" hidden>Already giving monthly? <button class="link-btn" data-manage>Manage or cancel</button></p>
-    <p class="fine-center">Payments are handled securely by Stripe. Monthly gifts can be cancelled anytime.</p>
-    <button class="btn btn-ghost btn-block" data-close style="margin-top:18px;">Close</button>
-  </div>
-</div>
-
 <!-- A thank-you, shown once after a week of practice -->
 <div class="backdrop" id="sheet-thanks" role="dialog" aria-modal="true" aria-labelledby="thanks-title">
   <div class="sheet">
@@ -873,7 +841,7 @@ body.is-practice .tabbar{ display:none; }
     <h2 id="thanks-title">Seven days of practice</h2>
     <p class="lead">You've come back to the lessons for a week now. That's no small thing.<br>The Companion is free and always will be. If it's been helping, you can help keep it going.</p>
     <div class="btn-stack">
-      <button class="btn btn-primary" id="thanks-support">Support the Companion</button>
+      <button class="btn btn-primary" id="thanks-support">Donate</button>
       <button class="btn btn-ghost" data-close>Not now</button>
     </div>
     <p class="fine-center">This is the only time we'll ask.</p>
@@ -3415,20 +3383,8 @@ function downloadReminderCalendar(){
 
 
 /* Support link: Stripe Payment Link (customers choose what to pay). */
-const SUPPORT_URL = "https://buy.stripe.com/eVq5kDcS06rUaB0f2rdjO05";   // one-time, any amount
-const MONTHLY_LINKS = [                                                    // monthly subscriptions
-  { amount:5,  url:"https://buy.stripe.com/dRm6oH3hqdUm7oO7zZdjO07" },
-  { amount:7,  url:"https://buy.stripe.com/28EbJ1cS0eYqcJ83jJdjO08" },
-  { amount:15, url:"https://buy.stripe.com/9B69ATbNWcQi7oO07xdjO09" }
-];
-// Stripe customer portal login link, so monthly supporters can manage or cancel.
-// Paste it between the quotes; the "Manage or cancel" link appears once it's set.
-const MANAGE_URL = "";
+const SUPPORT_URL = "https://buy.stripe.com/eVq5kDcS06rUaB0f2rdjO05";   // donation, any amount
 const openLink = (url)=>window.open(url, '_blank', 'noopener');
-function openSupport(){
-  $('amounts').innerHTML = MONTHLY_LINKS.map(l=>`<button class="amount" data-give="${l.url}" aria-label="Give $${l.amount} every month"><b>$${l.amount}</b><span>a month</span></button>`).join('');
-  openSheet('sheet-support');
-}
 // After a session ends, the first time someone reaches seven days of practice.
 function maybeThank(){
   if(settings.supportAsked) return;
@@ -3630,15 +3586,8 @@ function bindEvents(){
   $('ics-btn').addEventListener('click', downloadReminderCalendar);
   document.querySelectorAll('#seg-theme button').forEach(b=>b.addEventListener('click', ()=>{ settings.theme=b.dataset.v; saveSettings(); applyTheme(); renderSettings(); }));
   document.querySelectorAll('#seg-size button').forEach(b=>b.addEventListener('click', ()=>{ settings.fontSize=parseFloat(b.dataset.v); saveSettings(); applyFontScale(); renderSettings(); }));
-  $('give-once-btn').addEventListener('click', ()=>openLink(SUPPORT_URL));
-  $('give-monthly-btn').addEventListener('click', openSupport);
-  $('support-once').addEventListener('click', ()=>openLink(SUPPORT_URL));
-  $('thanks-support').addEventListener('click', ()=>{ closeSheet('sheet-thanks'); openSupport(); });
-  document.addEventListener('click', (e)=>{
-    const g = e.target.closest('[data-give]'); if(g){ openLink(g.dataset.give); return; }
-    if(e.target.closest('[data-manage]') && MANAGE_URL) openLink(MANAGE_URL);
-  });
-  $('manage-line').hidden = $('manage-line-sheet').hidden = !MANAGE_URL;
+  $('donate-btn').addEventListener('click', ()=>openLink(SUPPORT_URL));
+  $('thanks-support').addEventListener('click', ()=>{ closeSheet('sheet-thanks'); openLink(SUPPORT_URL); });
   $('backup-btn').addEventListener('click', saveBackup);
   $('restore-btn').addEventListener('click', ()=>$('restore-file').click());
   $('restore-file').addEventListener('change', (e)=>{ const f=e.target.files[0]; if(f) restoreBackup(f); e.target.value=''; });
