@@ -1666,11 +1666,11 @@ function lessonMeta(n){
   if(review){
     // Review blocks have their own rhythm regardless of lesson number.
     if(n<=60)  S(10,10,0,0,'',true,'Review I: 2+ min per idea; begin and end the day with all five ideas.');
-    else if(n<=90)  S(15,15,0,0,'',true,'Review II: 15 min twice daily; repeat ideas every half hour.');
-    else if(n<=120) S(5,5,0,0,'',true,'Review III: 5 min morning and evening; repeat ideas on the hour and half hour.');
+    else if(n<=90)  S(15,15,0,30,'',true,'Review II: 15 min twice daily; repeat ideas every half hour.');
+    else if(n<=120) S(5,5,0,30,'',true,'Review III: 5 min morning and evening; repeat ideas on the hour and half hour.');
     else if(n<=150) S(5,5,5,0,'',false,'Review IV: 5 min at the start of each hour; theme thought wraps each period.');
-    else if(n<=180) S(15,15,0,0,'',true,'Review V: 15+ min morning and evening; repeat theme thought hourly.');
-    else            S(15,15,0,0,'',true,'Review VI: 15+ min morning and evening; repeat theme thought every hour.');
+    else if(n<=180) S(15,15,0,60,'',true,'Review V: 15+ min morning and evening; repeat theme thought hourly.');
+    else            S(15,15,0,60,'',true,'Review VI: 15+ min morning and evening; repeat theme thought every hour.');
   } else {
     switch(n){
       // ── Part I: Lessons 1–50 ──────────────────────────────────────────
@@ -2074,6 +2074,13 @@ function lessonMeta(n){
           S(15,15,0,0,'',true,'Give the day to Him entirely. Whenever you need a word, He will give it to you.');
         }
     }
+  }
+  // Where the Workbook asks for an hourly remembrance, ring a chime each hour.
+  // The chime carries the lesson's own words when the instruction quotes them.
+  if(!m.reminderIntervalMin && !m.hourlyMin && /^(Hourly|Pause each hour)/.test(m.special)){
+    m.reminderIntervalMin = 60;
+    const q = m.special.match(/["“]([^"”]+)["”]/);
+    if(q) m.reminderNote = q[1];
   }
   return m;
 }
@@ -2564,7 +2571,7 @@ function checkReminders(){
     if(!slotMark || slotMark.every !== every){ slotMark = { every, slot }; }
     else if(slot > slotMark.slot){
       slotMark.slot = slot;
-      if(!chimeOff('interval')) fireReminder(meta.reminderNote || lessonTitle(n));
+      if(!chimeOff('interval')) fireReminder(reminderText(n));
     }
   } else if(meta.hourlyMin && inWindow){
     const h = now.getHours();
@@ -2611,6 +2618,18 @@ function updateNextReminder(){
   else if(mins < 60) when = `in ${mins} min`;
   else when = `at ${pad(nx.t.getHours())}:${pad(nx.t.getMinutes())}`;
   el.textContent = `Next chime ${when}, for ${nx.label}.`;
+}
+// What a short-period chime says: the lesson's own reminder, or for a
+// review day its central thought, or the ideas being reviewed.
+function reminderText(n){
+  const meta = lessonMeta(n);
+  if(meta.reminderNote) return meta.reminderNote;
+  const lines = lessonWords(n);
+  if(meta.review && lines.length){
+    if(!/^\(/.test(lines[0])) return lines[0];
+    return lines.map(l=>l.replace(/^\(\d+\)\s*/,'')).join(' ');
+  }
+  return lessonTitle(n);
 }
 function fireReminder(text){
   showToast(text);
