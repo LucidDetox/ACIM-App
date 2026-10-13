@@ -679,10 +679,6 @@ body.is-practice .tabbar{ display:none; }
           <label for="set-chime-volume">Volume</label>
           <input type="range" id="set-chime-volume" min="0" max="1" step="0.05">
         </div>
-        <div class="row-stack">
-          <p class="row-sub" style="margin:0 0 12px;">A web page can only chime while it's open. For alarms that reach you anywhere, add your practice times to your phone's calendar.</p>
-          <button class="btn btn-quiet btn-block" id="ics-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Add practice times to calendar</button>
-        </div>
       </div>
 
       <h2 class="group-label">Appearance</h2>
@@ -703,7 +699,7 @@ body.is-practice .tabbar{ display:none; }
 
       <h2 class="group-label">Support</h2>
       <div class="group" style="padding:6px 18px 18px;">
-        <p class="support-copy">The Companion is free, and it always will be. It's made and looked after by one person. If it's helping your practice, any donation would be immensely appreciated.</p>
+        <p class="support-copy">The Companion is free, and always will be. Donations are welcome but never expected.</p>
         <button class="btn btn-primary btn-block" id="donate-btn">Donate</button>
       </div>
 
@@ -3319,68 +3315,6 @@ async function resetAll(){
   showToast('All data deleted');
 }
 
-function icsEscape(t){ return String(t).replace(/([,;\\])/g,'\\$1').replace(/\n/g,'\\n'); }
-function icsTimeParts(hhmm){
-  const [h,m] = (hhmm||'07:00').split(':').map(x=>parseInt(x,10));
-  return { h: isNaN(h)?7:h, m: isNaN(m)?0:m };
-}
-function icsStamp(d){
-  const p = n => String(n).padStart(2,'0');
-  return d.getUTCFullYear() + p(d.getUTCMonth()+1) + p(d.getUTCDate()) + 'T'
-       + p(d.getUTCHours()) + p(d.getUTCMinutes()) + '00Z';
-}
-function icsLocal(dateObj, hhmm){
-  const t = icsTimeParts(hhmm);
-  const p = n => String(n).padStart(2,'0');
-  return dateObj.getFullYear() + p(dateObj.getMonth()+1) + p(dateObj.getDate())
-       + 'T' + p(t.h) + p(t.m) + '00';
-}
-function buildReminderICS(){
-  const now = new Date();
-  const start = new Date(); start.setDate(start.getDate()+1); // begin tomorrow
-  const stamp = icsStamp(now);
-  const events = [
-    { id:'morning', time: settings.wake,  title:'ACIM — early practice',
-      desc:'Your longer morning practice period. Open ACIM Daily Companion when you are ready to begin.' },
-    { id:'evening', time: settings.sleep, title:'ACIM — evening practice',
-      desc:'Your longer evening practice period. Close the day with the lesson.' }
-  ];
-  let out = [
-    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ACIM Daily Companion//EN',
-    'CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:ACIM Daily Practice'
-  ];
-  events.forEach(ev=>{
-    out = out.concat([
-      'BEGIN:VEVENT',
-      'UID:acim-' + ev.id + '-' + now.getTime() + '@acim-daily-companion',
-      'DTSTAMP:' + stamp,
-      'DTSTART:' + icsLocal(start, ev.time),
-      'DURATION:PT15M',
-      'RRULE:FREQ=DAILY',
-      'SUMMARY:' + icsEscape(ev.title),
-      'DESCRIPTION:' + icsEscape(ev.desc),
-      'BEGIN:VALARM','TRIGGER:PT0M','ACTION:DISPLAY',
-      'DESCRIPTION:' + icsEscape(ev.title),
-      'END:VALARM',
-      'END:VEVENT'
-    ]);
-  });
-  out.push('END:VCALENDAR');
-  return out.join('\r\n');
-}
-function downloadReminderCalendar(){
-  try{
-    const blob = new Blob([buildReminderICS()], {type:'text/calendar;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'acim-practice-times.ics';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
-    showToast('Open the file to add it to your calendar');
-  }catch(e){ showToast('Could not create the calendar file'); }
-}
-
-
 
 /* Support link: Stripe Payment Link (customers choose what to pay). */
 const SUPPORT_URL = "https://buy.stripe.com/eVq5kDcS06rUaB0f2rdjO05";   // donation, any amount
@@ -3583,7 +3517,6 @@ function bindEvents(){
   $('set-repeats').addEventListener('change', (e)=>{ settings.chimeRepeats = parseInt(e.target.value,10)||1; saveSettings(); });
   $('set-chime-volume').addEventListener('input', (e)=>{ settings.chimeVolume = parseFloat(e.target.value); saveSoon('acim-settings', ()=>settings); });
   $('set-chime-volume').addEventListener('change', ()=>playChime(settings.sound, settings.chimeVolume, 1));
-  $('ics-btn').addEventListener('click', downloadReminderCalendar);
   document.querySelectorAll('#seg-theme button').forEach(b=>b.addEventListener('click', ()=>{ settings.theme=b.dataset.v; saveSettings(); applyTheme(); renderSettings(); }));
   document.querySelectorAll('#seg-size button').forEach(b=>b.addEventListener('click', ()=>{ settings.fontSize=parseFloat(b.dataset.v); saveSettings(); applyFontScale(); renderSettings(); }));
   $('donate-btn').addEventListener('click', ()=>openLink(SUPPORT_URL));
